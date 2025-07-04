@@ -1,0 +1,69 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.24.4']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go }}
+    
+    - name: Get dependencies
+      run: go mod download
+    
+    - name: Build
+      run: go build -v ./...
+    
+    - name: Test
+      run: go test -v ./...
+    
+    - name: Build binary
+      run: go build -o trash
+    
+    - name: Test binary execution
+      run: |
+        ./trash --help
+        ./trash put --help
+        ./trash list --help
+    
+    - name: Integration test
+      shell: bash
+      run: |
+        # Create test file
+        echo "test content" > test_file.txt
+        
+        # Test trash put
+        ./trash put test_file.txt
+        
+        # Test trash list
+        ./trash list
+        
+        # Test that file was moved
+        if [ -f test_file.txt ]; then
+          echo "Error: File still exists after trash"
+          exit 1
+        fi
+        
+        # Test trash empty
+        ./trash empty
+        
+        # Verify trash is empty
+        OUTPUT=$(./trash list)
+        if [ "$OUTPUT" != "" ]; then
+          echo "Error: Trash is not empty after empty command"
+          exit 1
+        fi

@@ -1,0 +1,70 @@
+project_name: trash-cli-go
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    binary: trash
+    ldflags:
+      - -s -w
+      - -X github.com/sivchari/trash-cli-go/cmd.Version={{.Version}}
+      - -X github.com/sivchari/trash-cli-go/cmd.Commit={{.Commit}}
+      - -X github.com/sivchari/trash-cli-go/cmd.Date={{.Date}}
+    main: ./
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+
+release:
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## What's Changed
+    
+    This release brings improvements and bug fixes to trash-cli-go.
+  footer: |
+    ## Installation
+    
+    ### Download binary
+    
+    Download the appropriate binary for your platform from the assets below.
+    
+    ### Using Go
+    
+    ```bash
+    go install github.com/sivchari/trash-cli-go@{{ .Tag }}
+    ```
+    
+    **Full Changelog**: https://github.com/sivchari/trash-cli-go/compare/{{ .PreviousTag }}...{{ .Tag }}
+
